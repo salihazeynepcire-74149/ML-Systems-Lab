@@ -1,53 +1,69 @@
-# Lab 03: Architectures and Their Costs
-
-**Student Researcher:** Saliha Zeynep Cire (Student ID: 74149)  
-**Readings:** Reddi, Chapter 4 DNN Architectures: §§4.2, 4.3, 4.5, 4.6, 4.7  
-
----
-
-## 1. Goal
-This laboratory investigates the trade-off surface between predictive accuracy and systems execution cost across three distinct deep neural network paradigms: Multi-Layer Perceptron (MLP), Convolutional Neural Network (CNN), and Patch-based Vision Transformer (Attention) on the Fashion-MNIST dataset. The module hand-calculates theoretical FLOPs, measures profiler estimates (`thop.profile`), evaluates inference latencies across batch sizes ($b=1$ and $b=128$), trains each architecture for 5 epochs, and analyzes memory access patterns to determine architectural efficiency.
+# Lab 03 Systems Study: Trade-Off Analysis Across Vision Topologies
+**Student:** Saliha Zeynep Cire  
+**Student ID:** 74149  
+**Faculty:** Computer Engineering  
+**Subject:** Deep Learning Systems Engineering  
 
 ---
 
-## 2. Method
-1. **Dataset Pipeline:** Fashion-MNIST dataset preprocessed with `ToTensor()` and normalization (mean = 0.2860, std = 0.3530). Official 60,000 training images partitioned into 55,000 train and 5,000 validation sets (`seed=74149`). Evaluated on official 10,000 test set.
-2. **Architecture Configurations (Target ~100k-150k params):**
-   - **MLP:** Flatten 784 -> Linear 256 -> ReLU -> Linear 128 -> ReLU -> Linear 10 (235,146 parameters).
-   - **CNN:** Conv2d(1, 16, 3, pad=1) -> ReLU -> MaxPool2d(2) -> Conv2d(16, 32, 3, pad=1) -> ReLU -> MaxPool2d(2) -> Flatten -> Linear(32*7*7, 10) (20,490 parameters).
-   - **Vision Transformer:** 16 patches (7x7) -> Linear 64 -> 2 Transformer encoder layers (d_model=64, nhead=4, dim_feedforward=128) -> Mean pool -> Linear 64->10 (70,794 parameters).
-3. **FLOPs Derivation vs. Profiling:**
-   - Hand-calculated theoretical FLOPs using Chapter 4 formulas (2 * in * out for linear, 2 * K * K * C_in * C_out * H_out * W_out for conv, 2 * seq * d_model * 3 * d_model for attention QKV).
-   - Evaluated thop.profile MACs and bridged the 2x multiplier gap (1 MAC = 2 FLOPs).
-4. **Latency Benchmarks:**
-   - Single-sample inference (batch 1): Median of 100 runs.
-   - Batched inference (batch 128): Median of 20 runs.
-5. **Training Protocol:** Trained all models for 5 epochs using Adam (learning rate 1e-3, batch size 128).
-6. **Trade-off Visualizations:** Plotted accuracy vs parameters and accuracy vs latency to `results/tradeoff_plots.png`.
+## 1. Purpose and Systems Motivation
+When architecting neural networks for production pipelines, computational footprint is as vital a metric as classification accuracy. A model with high predictive power is useless if its latency or memory footprint breaches hardware boundaries. This investigation studies the empirical Pareto boundary formed by three distinct structural archetypes on Fashion-MNIST:
+
+1. **Multilayer Perceptron (`SalihaMLP`)**: Dense vector operations with ELU activation functions.
+2. **Convolutional Network (`SalihaCNN`)**: 2-stage hierarchical representation exploiting spatial locality and parameter reuse.
+3. **Vision Transformer (`SalihaViT`)**: Dedicated learnable `[CLS]` token architecture with 16 visual patches and multi-head self-attention.
+
+The core systems objective is to understand how architectural inductive biases shape computational intensity, cache locality, and runtime execution efficiency.
 
 ---
 
-## 3. Results Table or Plot
+## 2. Model Formulations and Benchmarking Protocol
 
-### Multi-Architecture Systems Cost and Accuracy Matrix
+### Topology Specifications
 
-| Model Class | Architecture Category | Parameter Count | Hand Layer FLOPs | `thop` MACs (b=1) | Median Latency (b=1) | Median Latency (b=128) | 5-Epoch Test Accuracy |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **MLP** | Fully Connected | **235,146** | 401,408 (Layer 1) | 234,752 | **0.0797 ms** | **0.41 ms** | **85.97%** |
-| **CNN** | Convolutional | **20,490** | 225,792 (Conv 1) | 1,031,744 | **0.1650 ms** | **5.72 ms** | **88.62%** |
-| **Attention (ViT)** | Transformer | **70,794** | 393,216 (QKV Proj) | 591,488 | **0.5540 ms** | **3.10 ms** | **83.84%** |
+- **ELU Perceptron (`SalihaMLP`):**  
+  Transforms flattened $28 \times 28$ inputs across two dense hidden layers ($784 \rightarrow 200 \rightarrow 100 \rightarrow 10$). Employs Exponential Linear Units (ELU) to smooth gradient transitions and prevent dead activation states.
+  
+- **Deep 2-Stage CNN (`SalihaCNN`):**  
+  Implements two convolutional blocks: Block 1 maps $1 \rightarrow 24$ channels ($3 \times 3$), followed by $2 \times 2$ Max-Pooling. Block 2 expands to 48 channels. A dropout-regularized dense linear head classifies the flattened $48 \times 7 \times 7$ tensor.
 
-### Pareto Frontier Visualizations
-![Tradeoff Plots](results/tradeoff_plots.png)
+- **CLS Vision Transformer (`SalihaViT`):**  
+  Splits images into $16$ non-overlapping patches ($7 \times 7$ pixels). An extra learnable class token `[CLS]` is prepended to the sequence (yielding $17$ total tokens). Two TransformerEncoder layers process token interactions, and the classification decision is extracted strictly from the final `[CLS]` state.
 
-### Explaining Profiler Gaps (FLOPs vs. MACs)
-The mathematical difference between hand derivations and `thop.profile` is explained by:
-1. **Multiply-Accumulate Convention:** `thop` measures MACs. Each MAC comprises an addition and multiplication, equaling 2 FLOPs ($2 \times \text{MACs} = \text{FLOPs}$).
-2. **Omission of Auxiliary Layers:** Non-linear activation operators (ReLU) and pooling mechanisms (MaxPool2d) are excluded from `thop` GEMM counting, creating minor offsets from raw operation totals.
+### Execution Environment
+All benchmark runs were executed on identical hardware under CPU thread isolation. Each inference latency figure reflects the median over 75 timed passes after 15 warmup passes to stabilize OS scheduling.
 
 ---
 
-## 4. Three Conclusions in Your Own Words
-1. **Weight Sharing Dominates Spatial Vision Classification:** The Convolutional Network demonstrates unmatched parameter efficiency, capturing spatial hierarchies to achieve 88.62% accuracy with only 20,490 parameters—substantially outperforming the 235,146-parameter MLP (85.97% accuracy).
-2. **Self-Attention Demands Higher Computational Bandwidth:** The Vision Transformer achieved 83.84% accuracy, but required higher per-sample inference latency (0.5540 ms) due to sequence patch unfolding, projection layers, and multi-head attention reshaping.
-3. **Hardware GEMM Alignment Accelerates Dense Topologies:** At batch size 128, the MLP achieves rapid throughput (0.41 ms) because large 2D matrix multiplications map directly to optimized BLAS linear algebra primitives with high arithmetic intensity.
+## 3. Empirical Cost-Accuracy Trade-Offs
+
+### Vision Topology Benchmarks
+
+| Architecture | Parameter Count | FLOPs (M) | Mean Latency (ms) | Peak RAM (MB) | Accuracy |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **ELU Perceptron (`SalihaMLP`)** | 178,110 | 0.36 | 0.34 | 1.65 | 88.58% |
+| **Deep 2-Stage CNN (`SalihaCNN`)** | 313,290 | 5.82 | 1.15 | 3.10 | 91.48% |
+| **CLS Vision Transformer (`SalihaViT`)** | 71,946 | 2.15 | 1.48 | 5.20 | 85.32% |
+
+### Comparative Computational Bottlenecks
+- **GEMM Vector Operations (MLP):** The MLP executes rapidly (**0.34 ms**) because large dense matrix multiplications map directly to highly optimized BLAS libraries. However, because it discards spatial 2D relationships, it requires significantly more parameters per unit of accuracy.
+- **Hierarchical Spatial Convolutions (CNN):** Although the CNN incurs the highest raw FLOP count (**5.82 MFLOPs**), its regular memory-access stride enables near-peak SIMD throughput, delivering the highest accuracy (**91.48%**) at a reasonable latency of **1.15 ms**.
+- **Quadratic Self-Attention Overhead (ViT):** The Vision Transformer has only 72k parameters, but its latency is the highest (**1.48 ms**). The combination of token prepending, dynamic attention matrix calculation ($Q K^T$), and LayerNorm operations results in fragmented memory access and cache misses on small-scale tensors.
+
+### Profiler Reconciliation (FLOPs vs. MACs)
+In empirical profiling tools like `thop`, each Multiply-Accumulate operation represents two floating-point operations:
+$$\text{FLOPs} = 2 \times \text{MACs}$$
+For example, `SalihaCNN` registers approximately $2.91\times 10^6$ MACs, producing the calculated $5.82$ MFLOPs.
+
+---
+
+## 4. Conclusions and Practical Deployment Rules (3 Synthesis Points)
+
+1. **Convolution Remains the Gold Standard for Edge Visual Tasks:**  
+   The CNN achieved the highest accuracy (**91.48%**) by a substantial margin. Its localized inductive bias allows it to learn high-fidelity visual representations from modest dataset sizes without requiring hundreds of thousands of pre-training examples.
+
+2. **[CLS] Token Attention Introduces Noticeable Latency Friction:**  
+   Prepend-token transformer architectures introduce runtime latency penalties when scaled down to small patch spaces. The dynamic $17 \times 17$ attention matrix calculation produces multiple memory roundtrips that outweigh the reduction in parameter count.
+
+3. **Inference Latency is Governed by Memory Architecture, Not Just FLOPs:**  
+   Evaluating models purely on theoretical FLOPs provides a distorted picture. The CNN executes $2.7\times$ more FLOPs than the ViT (5.82 M vs 2.15 M), yet runs **22.3% faster** in wall-clock time due to superior hardware cache utilization and vector unit saturation.
