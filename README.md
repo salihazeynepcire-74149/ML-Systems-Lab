@@ -1,47 +1,24 @@
-# Machine Learning Systems Laboratory Portfolio
+# Machine Learning Systems: Experimental Laboratory Portfolio
 
-**Student Researcher:** Saliha Zeynep Cire  
+**Student:** Saliha Zeynep Cire  
 **Student ID:** 74149  
-**Institution:** Vistula University  
-**Academic Year:** 2025/2026  
-**Primary Reference:** *Machine Learning Systems* (Vijay Janapa Reddi, Harvard University)  
+**Institution:** Vistula University — Machine Learning Systems (2025/2026)  
 
 ---
 
-## Coursework Overview and Unified Portfolio Architecture
+## Coursework Overview
 
-This repository organizes the comprehensive laboratory curriculum for Machine Learning Systems, structured across four modular investigative modules following strict reproducible engineering standards:
+This portfolio presents a unified suite of four laboratory investigations centered on the computational, mathematical, and data-engineering aspects of modern machine learning systems:
 
-```
-ml-systems-labs/
-├── README.md               # Repository roadmap and systems specifications
-├── requirements.txt        # Strictly pinned dependency manifest
-├── .gitignore              # Production-grade cache and artifact exclusions
-├── lab01/                  # Lab 01: Systems Profiling & Environment Setup
-│   ├── report.md           # Systems measurement audit & deployment tier classification
-│   ├── src/                # Baseline model training and memory profiler harness
-│   └── results/            # Profiling CSVs, model binaries, and telemetry
-├── lab02/                  # Lab 02: Modular Neural Network from First Principles
-│   ├── report.md           # Analytical calculus, finite-difference verification, training curves
-│   ├── src/                # Vectorized NumPy tensor network and backpropagation engine
-│   └── results/            # Multi-parameter convergence logs, loss plots, timing metrics
-├── lab03/                  # Lab 03: Architectural Topologies and Execution Budgets
-│   ├── report.md           # MLP vs CNN vs Attention trade-offs, theoretical FLOPs vs MACs
-│   ├── src/                # PyTorch architecture declarations and benchmarking scripts
-│   └── results/            # Pareto frontier plots, latency traces, parameter tables
-└── lab04/                  # Lab 04: Industrial Data Engineering & Quality Pipeline
-    ├── report.md           # Zero-leakage ETL validation, feature synthesis, label noise audit
-    ├── src/                # Production pipeline orchestrator and transformation modules
-    └── results/            # Data card, validation telemetry, serialized joblib artifacts
-```
+### Module Directory
+- **`lab01/` (Systems Profiling & Runtime Baseline):** Rigorous telemetry of parametric vs ensemble models on tabular diagnostic data, recording memory usage, execution times, and target hardware tiers.
+- **`lab02/` (Neural Network from First Principles):** Object-oriented, vectorized neural network in NumPy featuring exact analytical matrix gradients, two-sided finite difference checking, and hyperparameter grid dynamics.
+- **`lab03/` (Architectural Topologies and Computational Budgets):** Multi-model comparison (MLP, CNN, Attention) on Fashion-MNIST analyzing parameter counts, theoretical FLOPs, profiling MACs, and inference speed across batch regimes.
+- **`lab04/` (Production Data Engineering & Validation):** Zero-leakage ETL pipeline incorporating domain boundary validation, mode/median imputers fitted strictly on training data, feature synthesis, and duplicate label noise audits.
 
-## Setup and Execution
-
+## Reproducibility Protocol
 ```bash
-# 1. Environment initialization
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# 2. Dependency installation
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
