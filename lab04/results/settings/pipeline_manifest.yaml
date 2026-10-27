@@ -1,0 +1,21 @@
+functional_pipeline:
+  author: Saliha Zeynep Cire
+  student_id: 74149
+  seed: 74149
+cryptographic_signatures:
+  train_set_sha256: fad5e03c5fafb2ef4d63eb3f0619239be424dedd204a551b578157841cdfe24f
+  test_set_sha256: 3e19290bbcc5d3690632a2aa45c9454aa9cee782df486260f92ba889870e51dd
+metrics:
+  unaugmented_baseline:
+    accuracy: 0.8539
+    f1: 0.66
+    precision: 0.7445
+    recall: 0.5927
+  feature_engineered_baseline:
+    accuracy: 0.8546
+    f1: 0.6635
+    precision: 0.7432
+    recall: 0.5993
+  delta:
+    accuracy_change: 0.0007
+    f1_change: 0.0035
